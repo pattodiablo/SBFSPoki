@@ -57,9 +57,38 @@ class BaseScene extends Phaser.Scene {
 		
 
 
-		if (window.PokiSDKManager) {
-			window.PokiSDKManager.gameplayStart();
+		const startGameplayForPoki = () => {
+			if (this._pokiGameplayStarted) {
+				return;
+			}
+
+			this._pokiGameplayStarted = true;
+
+			if (window.PokiSDKManager) {
+				window.PokiSDKManager.gameplayStart();
+			}
+		};
+
+		this._pokiGameplayStarted = false;
+
+		if (this.input) {
+			this.input.once("pointerdown", startGameplayForPoki);
+			if (this.input.keyboard) {
+				this.input.keyboard.addCapture([
+					Phaser.Input.Keyboard.KeyCodes.SPACE,
+					Phaser.Input.Keyboard.KeyCodes.UP,
+					Phaser.Input.Keyboard.KeyCodes.DOWN
+				]);
+				this.input.keyboard.once("keydown", startGameplayForPoki);
+			}
 		}
+
+		this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+			this._pokiGameplayStarted = false;
+			if (window.PokiSDKManager) {
+				window.PokiSDKManager.gameplayStop();
+			}
+		});
 
 	this.game.sound.mute=false;	
 	
