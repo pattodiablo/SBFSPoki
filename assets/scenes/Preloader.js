@@ -168,6 +168,9 @@ class Preloader extends Phaser.Scene {
 	}
 
 	create() {
+		if (window.PokiSDKManager) {
+			window.PokiSDKManager.gameLoadingFinished();
+		}
 
 
 		this.scene.start(this.wichLevel);		

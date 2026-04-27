@@ -11,6 +11,145 @@ const mapIds = [1,2, 3, 4, 5, 6, 7,8,9,10,11,12,13,14,15,16,17,18,19,20] // Defi
 
 var challengeNumber = 1; // Get today's challenge number
 var mapId = mapIds[challengeNumber % mapIds.length]
+var pokiSdkManager = {
+	initialized: false,
+	loadingFinished: false,
+	gameplayActive: false,
+	inputBlocked: false,
+	init: function () {
+		if (typeof window === "undefined" || typeof window.PokiSDK === "undefined") {
+			return Promise.resolve();
+		}
+
+		return window.PokiSDK.init().then(() => {
+			this.initialized = true;
+			console.log("Poki SDK successfully initialized");
+		}).catch(() => {
+			console.log("Poki SDK init failed, continuing without blocking game startup");
+		});
+	},
+	gameLoadingFinished: function () {
+		if (this.loadingFinished || typeof window === "undefined" || typeof window.PokiSDK === "undefined") {
+			return;
+		}
+
+		this.loadingFinished = true;
+		window.PokiSDK.gameLoadingFinished();
+	},
+	gameplayStart: function () {
+		if (this.gameplayActive || typeof window === "undefined" || typeof window.PokiSDK === "undefined") {
+			return;
+		}
+
+		this.gameplayActive = true;
+		window.PokiSDK.gameplayStart();
+	},
+	gameplayStop: function () {
+		if (!this.gameplayActive || typeof window === "undefined" || typeof window.PokiSDK === "undefined") {
+			return;
+		}
+
+		this.gameplayActive = false;
+		window.PokiSDK.gameplayStop();
+	},
+	disableInput: function (game) {
+		if (this.inputBlocked || !game || !game.input) {
+			return;
+		}
+
+		this.inputBlocked = true;
+		game.input.enabled = false;
+	},
+	enableInput: function (game) {
+		if (!this.inputBlocked || !game || !game.input) {
+			return;
+		}
+
+		this.inputBlocked = false;
+		game.input.enabled = true;
+	},
+	muteGameAudio: function (game) {
+		if (!game || !game.sound) {
+			return;
+		}
+
+		game.sound.mute = true;
+	},
+	unmuteGameAudio: function (game) {
+		if (!game || !game.sound) {
+			return;
+		}
+
+		game.sound.mute = false;
+	},
+	commercialBreak: function (game, beforeAd, afterAd) {
+		this.gameplayStop();
+		this.muteGameAudio(game);
+		this.disableInput(game);
+
+		if (typeof beforeAd === "function") {
+			beforeAd();
+		}
+
+		if (typeof window === "undefined" || typeof window.PokiSDK === "undefined") {
+			this.unmuteGameAudio(game);
+			this.enableInput(game);
+			this.gameplayStart();
+			if (typeof afterAd === "function") {
+				afterAd();
+			}
+			return Promise.resolve();
+		}
+
+		return window.PokiSDK.commercialBreak().then(() => {
+			this.unmuteGameAudio(game);
+			this.enableInput(game);
+			this.gameplayStart();
+			if (typeof afterAd === "function") {
+				afterAd();
+			}
+		}).catch(() => {
+			this.unmuteGameAudio(game);
+			this.enableInput(game);
+			this.gameplayStart();
+		});
+	},
+	rewardedBreak: function (game, options) {
+		var rewardedOptions = options || {};
+		this.gameplayStop();
+		this.muteGameAudio(game);
+		this.disableInput(game);
+
+		if (typeof window === "undefined" || typeof window.PokiSDK === "undefined") {
+			this.unmuteGameAudio(game);
+			this.enableInput(game);
+			this.gameplayStart();
+			return Promise.resolve(false);
+		}
+
+		return window.PokiSDK.rewardedBreak(rewardedOptions).then((success) => {
+			this.unmuteGameAudio(game);
+			this.enableInput(game);
+			this.gameplayStart();
+			return success;
+		}).catch(() => {
+			this.unmuteGameAudio(game);
+			this.enableInput(game);
+			this.gameplayStart();
+			return false;
+		});
+	}
+};
+
+window.PokiSDKManager = pokiSdkManager;
+
+window.addEventListener('keydown', ev => {
+	if (['ArrowDown', 'ArrowUp', ' '].includes(ev.key)) {
+		ev.preventDefault();
+	}
+});
+
+window.addEventListener('wheel', ev => ev.preventDefault(), { passive: false });
 
 function getOS() {
 
@@ -41,6 +180,12 @@ getOS();
 var db;
 var tempdata;
 window.addEventListener('load', function () {
+	pokiSdkManager.init().finally(() => {
+		startGameBoot();
+	});
+});
+
+function startGameBoot() {
 
 	window.indexedDB = window.indexedDB || window.mozIndexedDB ||
 		window.webkitIndexedDB || window.msIndexedDB;
@@ -290,7 +435,7 @@ window.addEventListener('load', function () {
 
   
 
-});
+}
 
 
 class Boot extends Phaser.Scene {

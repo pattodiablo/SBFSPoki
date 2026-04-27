@@ -32,6 +32,9 @@ class gameOverScene extends Phaser.Scene {
 	// Write your code here
 
 	create() {
+		if (window.PokiSDKManager) {
+			window.PokiSDKManager.gameplayStop();
+		}
 
 		this.editorCreate();
 

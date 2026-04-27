@@ -76,6 +76,9 @@ class TitleScreen extends Phaser.Scene {
 	/* START-USER-CODE */
 
 	create() {
+		if (window.PokiSDKManager) {
+			window.PokiSDKManager.gameplayStop();
+		}
 
 
 		this.superbravo_splashscreen = this.sound.add('superbravo_splashscreen');

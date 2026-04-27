@@ -57,6 +57,10 @@ class BaseScene extends Phaser.Scene {
 		
 
 
+		if (window.PokiSDKManager) {
+			window.PokiSDKManager.gameplayStart();
+		}
+
 	this.game.sound.mute=false;	
 	
 
